@@ -52,7 +52,7 @@ jobs:
           ACE_API_KEY: ${{ secrets.ACE_API_KEY }}
         run: |
           echo "Deploying to ACEaaS"
-          curl -X POST "$ACE_SERVER_URL/apis/integration-servers/MyServer/deployments" \
+          curl -X POST "$ACE_SERVER_URL/apis/integration-servers/ir-03-medium/deployments" \
             -H "Authorization: Bearer $ACE_API_KEY" \
             -H "Content-Type: application/octet-stream" \
             --data-binary @tea-application-combined.bar
