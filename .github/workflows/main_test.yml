@@ -29,7 +29,7 @@ jobs:
           ibmint package ...
           # save bar file as artifact
       - name: Upload BAR file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bar-file
           path: tea-application-combined.bar
@@ -38,7 +38,7 @@ jobs:
     needs: build
     steps:
       - name: Download BAR file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bar-file
 
