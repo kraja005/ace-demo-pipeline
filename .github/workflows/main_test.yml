@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install curl
-        run: sudo apt-get update && sudo apt-get install -y curl
+        run: apk update && apk add curl
           
       - name: Build the application and test it
         shell: bash
