@@ -1,0 +1,113 @@
+name: ACEaaS CI-CD Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: tdolby/experimental:ace-minimal-13.0.4.0-alpine
+      env:
+        LICENSE: accept
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build BAR file
+        shell: bash
+        run: |
+          export LICENSE=accept
+          set +e
+          . /opt/ibm/ace-13/server/bin/mqsiprofile
+          set -e
+
+          echo "Building application"
+          ibmint package --input-path . \
+            --output-bar-file $PWD/tea-application-combined.bar \
+            --project TeaSharedLibraryJava \
+            --project TeaSharedLibrary \
+            --project TeaRESTApplication \
+            --project TeaCallableApplicationV2 \
+            --compile-maps-and-schemas
+
+      - name: Upload BAR file
+        uses: actions/upload-artifact@v4
+        with:
+          name: bar-file
+          path: tea-application-combined.bar
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download BAR file
+        uses: actions/download-artifact@v4
+        with:
+          name: bar-file
+
+      - name: Deploy to ACEaaS
+        shell: bash
+        env:
+          APPCON_ENDPOINT:       ${{ vars.APPCON_ENDPOINT }}
+          APPCON_DEPLOY_PREFIX:  ${{ vars.APPCON_DEPLOY_PREFIX }}
+          APPCON_INSTANCE_ID:    ${{ secrets.APPCON_INSTANCE_ID }}
+          APPCON_CLIENT_ID:      ${{ secrets.APPCON_CLIENT_ID }}
+          APPCON_CLIENT_SECRET:  ${{ secrets.APPCON_CLIENT_SECRET }}
+          APPCON_API_KEY:        ${{ secrets.APPCON_API_KEY }}
+        run: |
+          echo "Deploying to ACEaaS"
+
+          unset LD_LIBRARY_PATH
+          set -e
+
+          echo "Acquiring token"
+          curl -s --fail-with-body --request POST \
+            --url https://${APPCON_ENDPOINT}/api/v1/tokens \
+            --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
+            --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
+            --header 'accept: application/json' \
+            --header 'content-type: application/json' \
+            --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
+            --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" --output /tmp/token-output.txt
+
+          cat /tmp/token-output.txt | tr -d '{}"' | tr ',' '\n' | grep access_token | sed 's/access_token://g' > /tmp/APPCON_TOKEN
+
+          echo "Uploading BAR file"
+          curl -s --fail-with-body -X PUT https://${APPCON_ENDPOINT}/api/v1/bar-files/${APPCON_DEPLOY_PREFIX}-tea-ghaction \
+            -H "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" -H "Content-Type: application/octet-stream" \
+            -H "Accept: application/json" -H "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" -H "authorization: Bearer `cat /tmp/APPCON_TOKEN`" \
+            --data-binary @tea-application-combined.bar --output /tmp/curl-output.txt
+
+          export BARURL=$(cat /tmp/curl-output.txt | tr -d '{}"' | tr ',' '\n' | grep url | sed 's/url://g')
+          echo BARURL: $BARURL
+          echo -n $BARURL > /tmp/BARURL
+
+          echo "Checking for Integration Runtime"
+          set +e
+          curl -s https://${APPCON_ENDPOINT}/api/v1/integration-runtimes/${APPCON_DEPLOY_PREFIX}-tea-ghaction-ir \
+            -H "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" -H "Content-Type: application/octet-stream" \
+            -H "Accept: application/json" -H "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" -H "authorization: Bearer `cat /tmp/APPCON_TOKEN`" \
+            --output /tmp/curl-output.txt
+
+          grep -q '"Internal error","code":404' /tmp/curl-output.txt
+          if [ "$?" != "0" ]; then
+              grep -q supportsTraceCustomResource /tmp/curl-output.txt
+              if [ "$?" != "0" ]; then
+                echo "Error detecting ACEaaS IR"
+                cat /tmp/curl-output.txt
+                exit 1
+              fi
+              echo "Found existing IR"
+          else
+            echo "Creating Integration Runtime"
+            set -e
+            cp extensions/designer/create-integrationruntime-template.json /tmp/create-integrationruntime.json
+            sed -i "s/TEMPLATE_NAME/${APPCON_DEPLOY_PREFIX}-tea-ghaction-ir/g" /tmp/create-integrationruntime.json
+            sed -i "s/TEMPLATE_BARURL/`cat /tmp/BARURL | sed 's|/|\\\\/|g'`/g" /tmp/create-integrationruntime.json
+
+            curl -s --fail-with-body -X PUT https://${APPCON_ENDPOINT}/api/v1/integration-runtimes/${APPCON_DEPLOY_PREFIX}-tea-ghaction-ir \
+              -H "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" -H "Content-Type: application/json" \
+              -H "Accept: application/json" -H "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" -H "authorization: Bearer `cat /tmp/APPCON_TOKEN`" \
+              --data-binary @/tmp/create-integrationruntime.json
+          fi
