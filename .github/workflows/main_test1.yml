@@ -62,14 +62,28 @@ jobs:
           set -e
 
           echo "Acquiring token"
+          # curl -s --fail-with-body --request POST \
+          #   --url https://${APPCON_ENDPOINT}/api/v1/tokens \
+          #   --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
+          #   --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
+          #   --header 'accept: application/json' \
+          #   --header 'content-type: application/json' \
+          #   --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
+          #   --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" --output /tmp/token-output.txt
           curl -s --fail-with-body --request POST \
             --url https://${APPCON_ENDPOINT}/api/v1/tokens \
             --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
             --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
-            --header 'accept: application/json' \
-            --header 'content-type: application/json' \
             --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
-            --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" --output /tmp/token-output.txt
+            --header "accept: application/json" \
+            --header "content-type: application/json" \
+            --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" \
+            --output /tmp/token-output.txt
+
+          
+          echo "Token response:"
+          cat /tmp/token-output.txt
+
 
           cat /tmp/token-output.txt | tr -d '{}"' | tr ',' '\n' | grep access_token | sed 's/access_token://g' > /tmp/APPCON_TOKEN
 
