@@ -56,21 +56,43 @@ jobs:
           APPCON_CLIENT_SECRET:  ${{ secrets.APPCON_CLIENT_SECRET }}
           APPCON_API_KEY:        ${{ secrets.APPCON_API_KEY }}
         run: |
+          # echo "Deploying to ACEaaS"
+
+          # unset LD_LIBRARY_PATH
+          # set -e
+
+          # echo "Acquiring token"
+          # # curl -s --fail-with-body --request POST \
+          # #   --url https://${APPCON_ENDPOINT}/api/v1/tokens \
+          # #   --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
+          # #   --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
+          # #   --header 'accept: application/json' \
+          # #   --header 'content-type: application/json' \
+          # #   --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
+          # #   --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" --output /tmp/token-output.txt
+          # curl -s --fail-with-body --request POST \
+          #   --url https://${APPCON_ENDPOINT}/api/v1/tokens \
+          #   --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
+          #   --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
+          #   --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
+          #   --header "accept: application/json" \
+          #   --header "content-type: application/json" \
+          #   --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" \
+          #   --output /tmp/token-output.txt
+
+          
+          # echo "Token response:"
+          # cat /tmp/token-output.txt
+          
           echo "Deploying to ACEaaS"
 
           unset LD_LIBRARY_PATH
           set -e
 
           echo "Acquiring token"
-          # curl -s --fail-with-body --request POST \
-          #   --url https://${APPCON_ENDPOINT}/api/v1/tokens \
-          #   --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
-          #   --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
-          #   --header 'accept: application/json' \
-          #   --header 'content-type: application/json' \
-          #   --header "x-ibm-instance-id: ${APPCON_INSTANCE_ID}" \
-          #   --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" --output /tmp/token-output.txt
-          curl -s --fail-with-body --request POST \
+
+          # Make the token request with verbose output
+          curl -v --fail-with-body --request POST \
             --url https://${APPCON_ENDPOINT}/api/v1/tokens \
             --header "X-IBM-Client-Id: ${APPCON_CLIENT_ID}" \
             --header "X-IBM-Client-Secret: ${APPCON_CLIENT_SECRET}" \
@@ -78,11 +100,15 @@ jobs:
             --header "accept: application/json" \
             --header "content-type: application/json" \
             --data "{\"apiKey\": \"${APPCON_API_KEY}\"}" \
-            --output /tmp/token-output.txt
+            --output /tmp/token-output.txt || {
+              echo "❌ Token request failed. Here's the response:"
+              cat /tmp/token-output.txt
+              exit 1
+          }
 
-          
-          echo "Token response:"
+          echo "✅ Token request succeeded. Response:"
           cat /tmp/token-output.txt
+
 
 
           cat /tmp/token-output.txt | tr -d '{}"' | tr ',' '\n' | grep access_token | sed 's/access_token://g' > /tmp/APPCON_TOKEN
