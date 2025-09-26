@@ -41,7 +41,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   needs: build
   #   steps:
-  #     - name: Download BAR file
+  #     - name: Download BAR file       
   #       uses: actions/download-artifact@v4
   #       with:
   #         name: bar-file
@@ -77,17 +77,19 @@ jobs:
           APP_CONNECT_PORT: ${{ secrets.IBM_APP_CONNECT_PORT }}  # e.g., 4414
         shell: bash
         run: |
-          export LICENSE=accept
-          set +e
-          . /opt/ibm/ace-13/server/bin/mqsiprofile
-          set -e
+          curl -k https://$APP_CONNECT_HOST:$APP_CONNECT_PORT/apiv2
+
+          # export LICENSE=accept
+          # set +e
+          # . /opt/ibm/ace-13/server/bin/mqsiprofile
+          # set -e
   
-          echo "Deploying BAR file to IBM App Connect SaaS..."
+          # echo "Deploying BAR file to IBM App Connect SaaS..."
   
-          ibmint deploy \
-            --input-bar-file tea-application-combined.bar \
-            --output-host $APP_CONNECT_HOST \
-            --output-port $APP_CONNECT_PORT \
-            --https
+          # ibmint deploy \
+          #   --input-bar-file tea-application-combined.bar \
+          #   --output-host $APP_CONNECT_HOST \
+          #   --output-port $APP_CONNECT_PORT \
+          #   --https
   
-          echo "Deployment completed."
+          # echo "Deployment completed."
