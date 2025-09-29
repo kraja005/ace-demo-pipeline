@@ -9,26 +9,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Step 1: Build the BAR file inside ACE container
+      # Step 1: Build BAR inside ACE container
       - name: Build BAR inside ACE container
         run: |
           docker run --rm -v $GITHUB_WORKSPACE:/workspace -w /workspace tdolby/experimental:ace-minimal-13.0.4.0-alpine \
-          sh -c ". /opt/ibm/ace-13/server/bin/mqsiprofile && \
+          bash -c ". /opt/ibm/ace-13/server/bin/mqsiprofile && \
           ibmint package --input-path . --output-bar-file tea-application-combined.bar \
           --project TeaSharedLibraryJava --project TeaSharedLibrary --project TeaRESTApplication --project TeaCallableApplicationV2 --compile-maps-and-schemas"
 
-      # Step 2: Zip the BAR on runner
+      # Step 2: Run unit tests inside ACE container
+      - name: Run unit tests inside ACE container
+        run: |
+          docker run --rm -v $GITHUB_WORKSPACE:/workspace -w /workspace tdolby/experimental:ace-minimal-13.0.4.0-alpine \
+          bash -c ". /opt/ibm/ace-13/server/bin/mqsiprofile && \
+          mqsicreateworkdir /tmp/test-work-dir && \
+          mqsibar -w /tmp/test-work-dir -a $PWD/tea-application-combined.bar && \
+          ibmint deploy --input-path . --output-work-directory /tmp/test-work-dir --project TeaRESTApplication_UnitTest && \
+          IntegrationServer -w /tmp/test-work-dir --no-nodejs --start-msgflows false --test-project TeaRESTApplication_UnitTest --test-junit-options --reports-dir=junit-reports"
+
+      # Step 3: Copy BAR file to runner workspace
+      - name: Copy BAR to runner
+        run: |
+          VERSION=1.0.${{ github.run_number }}
+          cp $GITHUB_WORKSPACE/tea-application-combined.bar $GITHUB_WORKSPACE/TeaApplication.${VERSION}.bar
+
+      # Step 4: Zip the BAR file on runner
       - name: Zip BAR for Octopus
         run: |
           VERSION=1.0.${{ github.run_number }}
-          cp tea-application-combined.bar TeaApplication.${VERSION}.bar
-          zip -r TeaApplication.${VERSION}.zip TeaApplication.${VERSION}.bar
+          zip -r $GITHUB_WORKSPACE/TeaApplication.${VERSION}.zip $GITHUB_WORKSPACE/TeaApplication.${VERSION}.bar
 
-      # Step 3: Push ZIP package to Octopus
+      # Step 5: Push ZIP package to Octopus
       - name: Push ZIP package to Octopus Deploy
         uses: OctopusDeploy/push-package-action@v3
         with:
           api_key: ${{ secrets.OCTOPUS_API_KEY }}
           server: ${{ secrets.OCTOPUS_SERVER_URL }}
           space: 'Default'
-          packages: ./TeaApplication.1.0.${{ github.run_number }}.zip
+          packages: $GITHUB_WORKSPACE/TeaApplication.1.0.${{ github.run_number }}.zip
