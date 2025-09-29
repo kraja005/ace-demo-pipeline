@@ -75,12 +75,13 @@ jobs:
       - name: Prepare BAR file for Octopus
         run: |
           VERSION=1.0.${{ github.run_number }}
-          cp ./tea-application-combined.bar ./TeaApplication-${VERSION}.bar
-
+          cp ./tea-application-combined.bar ./TeaApplication.${VERSION}.bar
+      
       - name: Push BAR file to Octopus Deploy
         uses: OctopusDeploy/push-package-action@v3
         with:
           api_key: ${{ secrets.OCTOPUS_API_KEY }}
           server: ${{ secrets.OCTOPUS_SERVER_URL }}
           space: 'Default'
-          packages: ./TeaApplication-1.0.${{ github.run_number }}.bar
+          packages: ./TeaApplication.1.0.${{ github.run_number }}.bar
+      
