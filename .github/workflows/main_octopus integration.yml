@@ -75,8 +75,9 @@ jobs:
       - name: Push BAR file to Octopus Deploy
         uses: OctopusDeploy/push-package-action@v3
         with:
-         api_key: ${{ secrets.OCTOPUS_API_KEY }}
-         server: ${{ secrets.OCTOPUS_SERVER_URL }}
-         space: 'Default'
-         packages: |
-           ./tea-application-combined.bar
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          space: 'Default'
+          packages: |
+            ./tea-application-combined.bar
+
