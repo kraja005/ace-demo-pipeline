@@ -76,12 +76,13 @@ jobs:
         run: |
           VERSION=1.0.${{ github.run_number }}
           cp ./tea-application-combined.bar ./TeaApplication.${VERSION}.bar
-      
-      - name: Push BAR file to Octopus Deploy
+          # Zip the BAR file for Octopus
+          zip -r ./TeaApplication.${VERSION}.zip ./TeaApplication.${VERSION}.bar
+
+      - name: Push ZIP package to Octopus Deploy
         uses: OctopusDeploy/push-package-action@v3
         with:
           api_key: ${{ secrets.OCTOPUS_API_KEY }}
           server: ${{ secrets.OCTOPUS_SERVER_URL }}
           space: 'Default'
-          packages: ./TeaApplication.1.0.${{ github.run_number }}.bar
-      
+          packages: ./TeaApplication.1.0.${{ github.run_number }}.zip
