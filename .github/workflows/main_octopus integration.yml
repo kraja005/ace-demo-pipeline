@@ -1,30 +1,17 @@
 # CI build to validate PR changes before merging
-
 name: CI_Octopus_Integration
 
-# Controls when the action will run. 
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  # Disable temporarily during workflow development
-  #push:
-  #  branches: [ main, minikube-cp4i ]
-  #pull_request:
-  #  branches: [ main, minikube-cp4i ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     container: 
       image: tdolby/experimental:ace-minimal-13.0.4.0-alpine
       env:
         LICENSE: accept
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
           
       - name: Build the application and test it
@@ -32,52 +19,38 @@ jobs:
         run: |
           echo "Loading ACE profile"
           export LICENSE=accept
-          set +e # Don't fail on error if the profile has already been loaded
+          set +e
           . /opt/ibm/ace-13/server/bin/mqsiprofile
-          set -e # Fail on error - this must be done after the profile in case the container has the profile loaded already
+          set -e
 
-          echo ========================================================================
-          echo Building application
-          echo ========================================================================
-          # Using --compile-maps-and-schemas for 13.0.1 and later . . . 
+          echo "================================================================"
+          echo "Building application"
+          echo "================================================================"
           ibmint package --input-path . --output-bar-file $PWD/tea-application-combined.bar --project TeaSharedLibraryJava --project TeaSharedLibrary --project TeaRESTApplication --project TeaCallableApplicationV2 --compile-maps-and-schemas 
 
-          echo ========================================================================
-          echo Building unit tests
-          echo ========================================================================
-          # Create the unit test work directory
+          echo "================================================================"
+          echo "Building unit tests"
+          echo "================================================================"
           mqsicreateworkdir /tmp/test-work-dir
           mqsibar -w /tmp/test-work-dir -a $PWD/tea-application-combined.bar 
-          # Build just the unit tests
           ibmint deploy --input-path . --output-work-directory /tmp/test-work-dir --project TeaRESTApplication_UnitTest
 
-          echo ========================================================================
-          echo Running unit tests
-          echo ========================================================================
+          echo "================================================================"
+          echo "Running unit tests"
+          echo "================================================================"
           IntegrationServer -w /tmp/test-work-dir --no-nodejs --start-msgflows false --test-project TeaRESTApplication_UnitTest --test-junit-options --reports-dir=junit-reports
 
-      # - name: Install Octopus CLI
-      #   shell: bash
-      #   run: |
-      #     wget https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz -O octo.tar.gz
-      #     tar -xzf octo.tar.gz
-      #     chmod +x octo
-      #     mv octo /usr/local/bin/octo
-
-      # - name: Install Octopus CLI
-      #   run: |
-      #     curl -sSL https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz | tar -xz
-      #     sudo mv ./octo /usr/local/bin/octo
-
-            # - name: Package BAR file (if needed)
-            #   run: |
-            #     zip -r tea-application-combined.zip tea-application-combined.bar
-      - name: Prepare BAR file for Octopus
+      # Step to copy BAR file from container to runner workspace
+      - name: Copy BAR file to runner workspace
         run: |
           VERSION=1.0.${{ github.run_number }}
-          cp ./tea-application-combined.bar ./TeaApplication.${VERSION}.bar
-          # Use jar to create a zip
-          jar -cf ./TeaApplication.${VERSION}.zip ./TeaApplication.${VERSION}.bar
+          cp $GITHUB_WORKSPACE/tea-application-combined.bar $GITHUB_WORKSPACE/TeaApplication.${VERSION}.bar
+
+      # Step to zip BAR file on runner (Ubuntu runner has zip)
+      - name: Zip BAR file for Octopus
+        run: |
+          VERSION=1.0.${{ github.run_number }}
+          zip -r $GITHUB_WORKSPACE/TeaApplication.${VERSION}.zip $GITHUB_WORKSPACE/TeaApplication.${VERSION}.bar
 
       - name: Push ZIP package to Octopus Deploy
         uses: OctopusDeploy/push-package-action@v3
@@ -85,4 +58,4 @@ jobs:
           api_key: ${{ secrets.OCTOPUS_API_KEY }}
           server: ${{ secrets.OCTOPUS_SERVER_URL }}
           space: 'Default'
-          packages: ./TeaApplication.1.0.${{ github.run_number }}.zip
+          packages: $GITHUB_WORKSPACE/TeaApplication.1.0.${{ github.run_number }}.zip
