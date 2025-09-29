@@ -57,6 +57,7 @@ jobs:
           IntegrationServer -w /tmp/test-work-dir --no-nodejs --start-msgflows false --test-project TeaRESTApplication_UnitTest --test-junit-options --reports-dir=junit-reports
 
       - name: Install Octopus CLI
+        shell: bash
         run: |
           wget https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz -O octo.tar.gz
           tar -xzf octo.tar.gz
@@ -71,10 +72,11 @@ jobs:
             # - name: Package BAR file (if needed)
             #   run: |
             #     zip -r tea-application-combined.zip tea-application-combined.bar
-            - name: Push BAR file to Octopus Deploy
-              run: |
-                octo push \
-                  --package tea-application-combined.zip \
-                  --server ${{ secrets.OCTOPUS_SERVER_URL }} \
-                  --apiKey ${{ secrets.OCTOPUS_API_KEY }} \
-                  --space "Default"
+      - name: Push BAR file to Octopus Deploy
+        uses: OctopusDeploy/push-package-action@v3
+        with:
+         api_key: ${{ secrets.OCTOPUS_API_KEY }}
+         server: ${{ secrets.OCTOPUS_SERVER_URL }}
+         space: 'Default'
+         packages: |
+           ./tea-application-combined.bar
