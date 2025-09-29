@@ -58,8 +58,15 @@ jobs:
 
       - name: Install Octopus CLI
         run: |
-          curl -sSL https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz | tar -xz
-          sudo mv ./octo /usr/local/bin/octo
+          wget https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz -O octo.tar.gz
+          tar -xzf octo.tar.gz
+          chmod +x octo
+          mv octo /usr/local/bin/octo
+
+      # - name: Install Octopus CLI
+      #   run: |
+      #     curl -sSL https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz | tar -xz
+      #     sudo mv ./octo /usr/local/bin/octo
 
             # - name: Package BAR file (if needed)
             #   run: |
