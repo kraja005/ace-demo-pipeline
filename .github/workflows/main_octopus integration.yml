@@ -12,10 +12,11 @@ jobs:
       # Step 1: Build BAR inside ACE container
       - name: Build BAR inside ACE container
         run: |
-          docker run --rm -v $GITHUB_WORKSPACE:/workspace -w /workspace tdolby/experimental:ace-minimal-13.0.4.0-alpine \
+          docker run --rm -e LICENSE=accept -v $GITHUB_WORKSPACE:/workspace -w /workspace tdolby/experimental:ace-minimal-13.0.4.0-alpine \
           bash -c ". /opt/ibm/ace-13/server/bin/mqsiprofile && \
           ibmint package --input-path . --output-bar-file tea-application-combined.bar \
           --project TeaSharedLibraryJava --project TeaSharedLibrary --project TeaRESTApplication --project TeaCallableApplicationV2 --compile-maps-and-schemas"
+
 
       # Step 2: Run unit tests inside ACE container
       - name: Run unit tests inside ACE container
