@@ -57,9 +57,9 @@ jobs:
           IntegrationServer -w /tmp/test-work-dir --no-nodejs --start-msgflows false --test-project TeaRESTApplication_UnitTest --test-junit-options --reports-dir=junit-reports
 
       - name: Install Octopus CLI
-              run: |
-                curl -sSL https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz | tar -xz
-                sudo mv ./octo /usr/local/bin/octo
+        run: |
+          curl -sSL https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz | tar -xz
+          sudo mv ./octo /usr/local/bin/octo
 
             # - name: Package BAR file (if needed)
             #   run: |
