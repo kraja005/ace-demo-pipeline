@@ -56,13 +56,13 @@ jobs:
           echo ========================================================================
           IntegrationServer -w /tmp/test-work-dir --no-nodejs --start-msgflows false --test-project TeaRESTApplication_UnitTest --test-junit-options --reports-dir=junit-reports
 
-      - name: Install Octopus CLI
-        shell: bash
-        run: |
-          wget https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz -O octo.tar.gz
-          tar -xzf octo.tar.gz
-          chmod +x octo
-          mv octo /usr/local/bin/octo
+      # - name: Install Octopus CLI
+      #   shell: bash
+      #   run: |
+      #     wget https://downloads.octopus.com/octopus-tools/latest/linux-x64.tar.gz -O octo.tar.gz
+      #     tar -xzf octo.tar.gz
+      #     chmod +x octo
+      #     mv octo /usr/local/bin/octo
 
       # - name: Install Octopus CLI
       #   run: |
