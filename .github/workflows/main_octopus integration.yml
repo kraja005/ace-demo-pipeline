@@ -46,14 +46,14 @@ jobs:
 
       # Upload BAR artifact for next job
       - name: Upload BAR file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tea-bar
           path: tea-application-combined.bar
 
       # Upload unit test reports for GitHub visibility
       - name: Upload test reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: junit-reports
           path: junit-reports
@@ -66,7 +66,7 @@ jobs:
 
       # Download BAR artifact from build job
       - name: Download BAR artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tea-bar
           path: .
